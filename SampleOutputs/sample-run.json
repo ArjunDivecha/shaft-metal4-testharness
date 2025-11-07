@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "device": "iPhone 17 Pro Max",
+    "iosVersion": "26.0.1",
+    "metalVersion": "4",
+    "metalFamily": "apple9",
+    "appVersion": "0.1.0",
+    "llamaCppCommit": "TBD",
+    "backend": "metal-tensor"
+  },
+  "model": {
+    "path": "phi-3.5-mini-instruct-Q4_K_M.gguf",
+    "sizeBytes": 2400000000,
+    "quant": "Q4_K_M",
+    "ctxLen": 4096
+  },
+  "run": {
+    "promptId": "short_1",
+    "seed": 1234,
+    "tokensTarget": 128
+  },
+  "metrics": {
+    "ttftMs": 245.0,
+    "tpS": 28.3,
+    "totalTokens": 128,
+    "timeMs": 4520.0,
+    "peakMemMb": 3421,
+    "thermalStates": ["nominal", "fair", "fair"],
+    "throttledEvents": 0
+  },
+  "parity": {
+    "baselineBackend": "metal-legacy",
+    "tokenMatchRatio": 0.998,
+    "editDistance": 1,
+    "notes": "Excellent parity"
+  },
+  "notes": null
+}

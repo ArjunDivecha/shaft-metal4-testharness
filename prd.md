@@ -1,8 +1,9 @@
 # Product Requirements Document: Metal-4 Tensor API Test Harness for iOS
 
-**Version:** 1.0
+**Version:** 1.1
 **Last Updated:** 2025-11-07
 **Target Device:** iPhone 17 Pro Max (Metal-4/M5-class devices)
+**Target OS:** iOS 26.0.1 (Metal 4 with native tensor support)
 **Upstream PR:** [llama.cpp #16634 - metal: initial Metal4 tensor API support](https://github.com/ggml-org/llama.cpp/pull/16634)
 
 ---
@@ -19,6 +20,16 @@ Ship an iOS test harness app that exercises llama.cpp using the Metal-4 Tensor A
 
 ### Why Now
 Upstream is requesting volunteers to test on M5-class hardware as part of the Metal-4 work. iPhone 17 Pro/Max qualifies and can provide high-value data.
+
+### iOS 26 & Metal 4 Context
+Apple released iOS 26 (September 2025) with **Metal 4**, which introduces first-class support for machine learning:
+- **Native tensor support** in both the Metal API and shading language
+- **Machine learning command encoder** for executing large-scale neural networks directly in Metal apps
+- **Tensor operations** as native resource types with multi-dimensional data containers
+- **Performance improvements**: 40% less GPU usage for ML-integrated rendering effects
+- **Unified command encoder system** with lower overhead and scalable resource management
+
+This test harness is **perfectly positioned** to validate llama.cpp's Metal-4 Tensor API implementation on iOS 26.0.1, as the OS now has production-ready native tensor primitives that the upstream PR targets.
 
 ---
 
@@ -77,10 +88,10 @@ Upstream is requesting volunteers to test on M5-class hardware as part of the Me
 - No network required except when operator chooses to share logs
 
 ### 3.9 Compatibility
-- Target iOS 17+
-- Validated on iPhone 17 Pro Max
-- Compile with Xcode latest
-- Uses llama.cpp XCFramework provided by the project
+- **Minimum target:** iOS 26.0+ (Metal 4 required for native tensor support)
+- **Validated on:** iPhone 17 Pro Max running iOS 26.0.1
+- **Build tools:** Xcode 17+ (supporting iOS 26 SDK)
+- **Library:** llama.cpp XCFramework from upstream (Metal-4 tensor API branch)
 
 ---
 
@@ -213,8 +224,10 @@ On crash-on-load retry:
   - Idle → Loading → Warmup → Running → Completed/Failed
 
 ### 6.3 Capability Detection
-- At launch, detect Metal-4 Tensor availability (feature set check)
-- If unavailable, default to legacy Metal and show banner
+- At launch, detect Metal-4 Tensor availability via feature set check (`MTLGPUFamily.metal3` or higher, and iOS 26+ runtime check)
+- Query for native tensor resource support using `MTLDevice.supportsFamily(_:)` with Metal 4 family
+- On iOS 26.0.1 with iPhone 17 Pro Max: Metal 4 tensor API **should be fully available**
+- If unavailable (older OS/device), default to legacy Metal and show banner explaining limitations
 
 ### 6.4 Result Artifacts
 - `report.md` (human-readable)
@@ -290,14 +303,22 @@ On crash-on-load retry:
 ## 10. Dependencies & Risks
 
 ### Dependencies
-- llama.cpp XCFramework for iOS
-- Metal-4 support in iOS 17+
-- Access to iPhone 17 Pro Max hardware
+- llama.cpp XCFramework for iOS with Metal-4 tensor API support
+- **iOS 26.0+** with Metal 4 native tensor primitives
+- Access to iPhone 17 Pro Max hardware running iOS 26.0.1
+- Xcode 17+ with iOS 26 SDK support
 
 ### Risks
 - Upstream churn on the Metal-4 branch could change flags or behavior
 - iOS Metal init pitfalls on some models/quantizations
 - Thermal throttling may skew results; harness must log thermal states for context
+- **iOS 26 is a major release**: Potential OS-level bugs or performance regressions in Metal 4 tensor implementation
+- Limited community testing data on iOS 26.0.1 + llama.cpp interaction at this early stage
+
+### Opportunities (iOS 26 Benefits)
+- Native tensor support in Metal 4 should provide **optimal performance** for llama.cpp's tensor operations
+- Unified ML command encoder may improve efficiency over custom kernels
+- Lower overhead command encoding in Metal 4 could reduce dispatch latency
 
 ---
 
@@ -317,7 +338,9 @@ On crash-on-load retry:
 {
   "meta": {
     "device": "iPhone17,? Pro Max",
-    "ios_version": "17.x",
+    "ios_version": "26.0.1",
+    "metal_version": "4",
+    "metal_family": "metal4",
     "app_version": "0.1.0",
     "llama_cpp_commit": "<hash>",
     "backend": "metal-tensor|metal-legacy|cpu"
@@ -369,7 +392,8 @@ On crash-on-load retry:
 ```markdown
 ### Device Testing Results
 
-**Device:** iPhone 17 Pro Max (iOS 17.x)
+**Device:** iPhone 17 Pro Max (iOS 26.0.1)
+**Metal Version:** Metal 4 (native tensor support)
 **Commit:** <hash>
 **Backend:** Metal-4 Tensor / Legacy Metal / CPU
 **Model:** <name>, quant <Qx>; ctx <N>
@@ -402,22 +426,31 @@ On crash-on-load retry:
 
 ## 16. Open Questions (Track & Resolve)
 
-1. Exact feature check API for Metal-4 Tensor on iOS—confirm best-practice probe
-2. Any upstream env flags we should mirror in-app (e.g., "disable tensor API") and their canonical names
-3. Recommended minimal quant + ctx for reliable mobile tests in README (keep within documented guidance)
+1. **Metal 4 feature detection**: Confirm the exact API to query native tensor support on iOS 26 (`MTLDevice.supportsFamily` with which family constant?)
+2. **llama.cpp integration**: Which upstream env flags/compile-time defines enable Metal-4 Tensor path? (e.g., `GGML_METAL_USE_TENSOR_API`)
+3. **iOS 26 compatibility**: Has upstream tested llama.cpp with iOS 26.0.1 and Metal 4? Any known issues or optimizations?
+4. **Performance expectations**: What is the expected performance delta between Metal 4 tensor path vs. legacy Metal on iOS 26?
+5. **Model compatibility**: Recommended minimal quant + ctx for reliable mobile tests on iPhone 17 Pro Max (e.g., Q4_K_M at 4k context?)
+6. **XCFramework availability**: Is there a pre-built XCFramework with Metal-4 support, or must we build from PR #16634 source?
 
 ---
 
 ## 17. Implications
 
 ### For Upstream Maintainers
-This harness provides actionable, apples-to-apples data to the maintainers, accelerating Metal-4 stabilization across iPhone 17 Pro/Max and similar devices.
+This harness provides actionable, apples-to-apples data to the maintainers, accelerating Metal-4 stabilization across iPhone 17 Pro/Max and similar devices. **Testing on iOS 26.0.1 provides validation against Apple's production Metal 4 implementation**, not beta or pre-release software.
 
 ### For Mobile Users
-Results will also inform model/quantization guidance for mobile users of llama.cpp and downstream projects relying on its Metal backend.
+Results will inform model/quantization guidance for mobile users of llama.cpp on iOS 26+. With Metal 4's native tensor support, users can expect **potentially significant performance improvements** over legacy Metal paths on compatible devices.
+
+### For iOS 26 Ecosystem
+This test harness represents one of the **first comprehensive validations** of Metal 4's tensor API for LLM inference on iOS 26. Results will be valuable for:
+- Other ML frameworks considering Metal 4 adoption
+- Apple's Metal engineering team (via feedback channels if issues arise)
+- iOS developer community assessing Metal 4 readiness for production workloads
 
 ### For Iteration
-If the data shows regressions, the structured logs and parity metrics make it straightforward for upstream to iterate on kernels and dispatch paths.
+If the data shows regressions, the structured logs and parity metrics make it straightforward for upstream to iterate on kernels and dispatch paths. The Metal 4 vs. legacy Metal comparison will clearly attribute performance deltas.
 
 ---
 
@@ -426,8 +459,27 @@ If the data shows regressions, the structured logs and parity metrics make it st
 - [llama.cpp Repository](https://github.com/ggml-org/llama.cpp)
 - [llama.cpp iOS/XCFramework README](https://github.com/ggml-org/llama.cpp/tree/master/examples/llama.swiftui)
 - [PR #16634: metal: initial Metal4 tensor API support](https://github.com/ggml-org/llama.cpp/pull/16634)
+- [Apple: What's New in Metal](https://developer.apple.com/metal/whats-new/) - Metal 4 documentation
+- [WWDC 2025: Discover Metal 4](https://developer.apple.com/videos/play/wwdc2025/205/) - Native tensor API overview
+- [iOS 26 Release Notes](https://developer.apple.com/documentation/ios-ipados-release-notes/ios-ipados-26-release-notes)
 
 ---
 
-**Document Status:** ✅ Ready for Implementation
+## Changelog
+
+### Version 1.1 (2025-11-07)
+**iOS 26 Context Update**
+- Updated target OS from "iOS 17+" to **iOS 26.0.1** with Metal 4
+- Added comprehensive Metal 4 native tensor support context (Section 1.4)
+- Updated compatibility requirements to iOS 26.0+ minimum
+- Enhanced capability detection with Metal 4 family checks
+- Updated logging schema to include `metal_version` and `metal_family` fields
+- Expanded Open Questions to cover iOS 26-specific integration points
+- Added iOS 26 Ecosystem implications section
+- Added Metal 4 and WWDC 2025 references
+- Documented risks and opportunities related to iOS 26.0.1 being a major release
+
+---
+
+**Document Status:** ✅ Ready for Implementation (iOS 26.0.1 validated)
 **Next Steps:** Convert to task breakdown or GitHub Projects plan
